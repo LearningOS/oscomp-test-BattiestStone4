@@ -1,0 +1,11 @@
+[patch.'https://github.com/oscomp/arceos.git']
+axstd = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/ulib/axstd" }
+arceos_posix_api = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/api/arceos_posix_api" }
+axhal = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/modules/axhal" }
+axmm = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/modules/axmm" }
+axtask = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/modules/axtask" }
+axsync = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/modules/axsync" }
+axruntime = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/modules/axruntime" }
+axns = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/modules/axns" }
+axfs = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/modules/axfs" }
+axconfig = { path = "/home/stone/oscomp-test-BattiestStone4/.arceos/modules/axconfig" }
