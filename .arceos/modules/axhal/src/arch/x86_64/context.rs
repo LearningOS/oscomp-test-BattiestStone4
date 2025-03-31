@@ -325,6 +325,16 @@ impl TaskContext {
         self.fs_base = tls_area.as_usize();
     }
 
+    /// Gets the TLS area.
+    pub fn tls(&self) -> VirtAddr {
+        VirtAddr::from(self.fs_base)
+    }
+
+    /// Sets the TLS area.
+    pub fn set_tls(&mut self, tls_area: VirtAddr) {
+        self.fs_base = tls_area.as_usize();
+    }
+
     /// Changes the page table root (`CR3` register for x86_64).
     ///
     /// If not set, the kernel page table root is used (obtained by

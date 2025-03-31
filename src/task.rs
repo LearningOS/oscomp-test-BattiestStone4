@@ -117,6 +117,8 @@ impl TaskExt {
             .ctx_mut()
             .set_page_table_root(new_aspace.page_table_root());
 
+        new_task.ctx_mut().set_tls(axhal::arch::read_thread_pointer().into());
+
         let trap_frame = read_trapframe_from_kstack(current_task.get_kernel_stack_top().unwrap());
         let mut new_uctx = UspaceContext::from(&trap_frame);
         if let Some(stack) = stack {

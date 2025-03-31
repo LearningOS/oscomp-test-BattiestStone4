@@ -222,6 +222,16 @@ impl TaskContext {
         self.tp = tls_area.as_usize();
     }
 
+    /// Gets the TLS area.
+    pub fn tls(&self) -> VirtAddr {
+        VirtAddr::from(self.tp)
+    }
+
+    /// Sets the TLS area.
+    pub fn set_tls(&mut self, tls_area: VirtAddr) {
+        self.tp = tls_area.as_usize();
+    }
+
     /// Changes the page table root (`pgdl` register for loongarch64).
     ///
     /// If not set, it means that this task is a kernel task and only `pgdh` register will be used.
