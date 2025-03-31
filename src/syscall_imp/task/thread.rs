@@ -5,14 +5,12 @@ use axerrno::{LinuxError, LinuxResult};
 use axtask::{TaskExtRef, current, yield_now};
 use macro_rules_attribute::apply;
 use num_enum::TryFromPrimitive;
-use starry_core::{
-    ctypes::{WaitFlags, WaitStatus},
-    task::{exec, wait_pid},
-};
 
 use crate::{
+    ctypes::{WaitFlags, WaitStatus},
     ptr::{PtrWrapper, UserConstPtr, UserPtr},
-    syscall_instrument,
+    syscall_imp::syscall_instrument,
+    task::wait_pid,
 };
 
 /// ARCH_PRCTL codes
@@ -44,6 +42,11 @@ pub fn sys_getpid() -> LinuxResult<isize> {
 #[apply(syscall_instrument)]
 pub fn sys_getppid() -> LinuxResult<isize> {
     Ok(axtask::current().task_ext().get_parent() as _)
+}
+
+#[apply(syscall_instrument)]
+pub fn sys_gettid() -> LinuxResult<isize> {
+    Ok(current().id().as_u64() as _)
 }
 
 pub fn sys_exit(status: i32) -> ! {
@@ -147,7 +150,7 @@ pub fn sys_wait4(pid: i32, exit_code_ptr: UserPtr<i32>, option: u32) -> LinuxRes
     let option_flag = WaitFlags::from_bits(option).unwrap();
     let exit_code_ptr = exit_code_ptr.nullable(UserPtr::get)?;
     loop {
-        let answer = unsafe { wait_pid(pid, exit_code_ptr.unwrap_or_else(ptr::null_mut)) };
+        let answer = wait_pid(pid, exit_code_ptr.unwrap_or_else(ptr::null_mut));
         match answer {
             Ok(pid) => {
                 return Ok(pid as isize);
@@ -203,7 +206,7 @@ pub fn sys_execve(
         path_str, args, envs
     );
 
-    if let Err(e) = exec(path_str, &args, &envs) {
+    if let Err(e) = crate::task::exec(path_str, &args, &envs) {
         error!("Failed to exec: {:?}", e);
         return Err::<isize, _>(LinuxError::ENOSYS);
     }

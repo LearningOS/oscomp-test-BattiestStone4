@@ -1,11 +1,56 @@
+mod fs;
+mod mm;
+mod signal;
+mod sys;
+mod task;
+mod utils;
+
+use crate::task::{time_stat_from_kernel_to_user, time_stat_from_user_to_kernel};
 use axerrno::{LinuxError, LinuxResult};
 use axhal::{
     arch::TrapFrame,
     trap::{SYSCALL, register_trap_handler},
 };
-use starry_api::*;
-use starry_core::task::{time_stat_from_kernel_to_user, time_stat_from_user_to_kernel};
 use syscalls::Sysno;
+
+use self::fs::*;
+use self::mm::*;
+use self::signal::*;
+use self::sys::*;
+use self::task::*;
+use self::utils::*;
+
+macro_rules! syscall_instrument {(
+    $( #[$attr:meta] )*
+    $pub:vis
+    fn $fname:ident (
+        $( $arg_name:ident : $ArgTy:ty ),* $(,)?
+    ) -> $RetTy:ty
+    $body:block
+) => (
+    $( #[$attr] )*
+    #[allow(unused_parens)]
+    $pub
+    fn $fname (
+        $( $arg_name : $ArgTy ),*
+    ) -> $RetTy
+    {
+        /// Re-emit the original function definition, but as a scoped helper
+        $( #[$attr] )*
+        fn __original_func__ (
+            $($arg_name: $ArgTy),*
+        ) -> $RetTy
+        $body
+
+        let res = __original_func__($($arg_name),*);
+        match res {
+            Ok(_) | Err(axerrno::LinuxError::EAGAIN) => debug!(concat!(stringify!($fname), " => {:?}"),  res),
+            Err(_) => info!(concat!(stringify!($fname), " => {:?}"), res),
+        }
+        res
+    }
+)}
+pub(crate) use syscall_instrument;
 
 #[register_trap_handler(SYSCALL)]
 fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
@@ -24,6 +69,8 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
         ),
         Sysno::ioctl => sys_ioctl(tf.arg0() as _, tf.arg1() as _, tf.arg2().into()),
         Sysno::writev => sys_writev(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
+        Sysno::prlimit64 => Ok(0),
+        Sysno::rt_sigtimedwait => Ok(0),
         Sysno::sched_yield => sys_sched_yield(),
         Sysno::nanosleep => sys_nanosleep(tf.arg0().into(), tf.arg1().into()),
         Sysno::getpid => sys_getpid(),
@@ -105,6 +152,7 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
         Sysno::clock_gettime => sys_clock_gettime(tf.arg0() as _, tf.arg1().into()),
         Sysno::exit_group => sys_exit_group(tf.arg0() as _),
         Sysno::getuid => sys_getuid(),
+        Sysno::gettid => sys_gettid(),
         Sysno::rt_sigprocmask => sys_rt_sigprocmask(
             tf.arg0() as _,
             tf.arg1().into(),

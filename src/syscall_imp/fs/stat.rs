@@ -5,7 +5,7 @@ use macro_rules_attribute::apply;
 
 use crate::{
     ptr::{PtrWrapper, UserConstPtr, UserPtr},
-    syscall_instrument,
+    syscall_imp::syscall_instrument,
 };
 
 #[derive(Debug, Clone, Copy, Default)]

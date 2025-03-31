@@ -1,0 +1,11 @@
+[patch.'https://github.com/oscomp/arceos.git']
+axstd = { path = "/home/yyy/starry-on-github/starry-next/.arceos/ulib/axstd" }
+arceos_posix_api = { path = "/home/yyy/starry-on-github/starry-next/.arceos/api/arceos_posix_api" }
+axhal = { path = "/home/yyy/starry-on-github/starry-next/.arceos/modules/axhal" }
+axmm = { path = "/home/yyy/starry-on-github/starry-next/.arceos/modules/axmm" }
+axtask = { path = "/home/yyy/starry-on-github/starry-next/.arceos/modules/axtask" }
+axsync = { path = "/home/yyy/starry-on-github/starry-next/.arceos/modules/axsync" }
+axruntime = { path = "/home/yyy/starry-on-github/starry-next/.arceos/modules/axruntime" }
+axns = { path = "/home/yyy/starry-on-github/starry-next/.arceos/modules/axns" }
+axfs = { path = "/home/yyy/starry-on-github/starry-next/.arceos/modules/axfs" }
+axconfig = { path = "/home/yyy/starry-on-github/starry-next/.arceos/modules/axconfig" }
