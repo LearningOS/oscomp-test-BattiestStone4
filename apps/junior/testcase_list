@@ -1,4 +1,3 @@
 brk
 chdir
 clone
-execve
