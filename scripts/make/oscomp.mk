@@ -1,18 +1,27 @@
 # Command to build and run testcases for oscomp
 
 oscomp_binary: ax_root defconfig
-	@cp -r $(PWD)/bin/* /root/.cargo/bin
+	# @cp -r $(PWD)/bin/* /root/.cargo/bin
 	@make -C $(AX_ROOT) A=$(PWD) EXTRA_CONFIG=$(EXTRA_CONFIG) build
 	@if [ "$(ARCH)" = "riscv64" ]; then \
 		cp $(OUT_BIN) kernel-rv; \
-	else \
+	elif [ "$(ARCH)" = "loongarch64" ]; then \
 		cp $(OUT_ELF) kernel-la; \
+	elif [ "$(ARCH)" = "x86_64" ]; then \
+		cp $(OUT_ELF_X86) kernel-x86 || true; \
+	elif [ "$(ARCH)" = "aarch64" ]; then \
+		cp $(OUT_BIN) kernel-ar || true; \
 	fi
 
 oscomp_build:
 	# Build for os competition
-	RUSTUP_TOOLCHAIN=nightly-2025-01-18 $(MAKE) oscomp_binary ARCH=riscv64 AX_TESTCASE=oscomp BUS=mmio FEATURES=lwext4_rs 
-	RUSTUP_TOOLCHAIN=nightly-2025-01-18 $(MAKE) oscomp_binary ARCH=loongarch64 AX_TESTCASE=oscomp FEATURES=lwext4_rs
+# 判断 ARCH 是否为 riscv64
+	ifeq ($(ARCH),riscv64)
+		RUSTUP_TOOLCHAIN=nightly-2025-01-18 $(MAKE) oscomp_binary AX_TESTCASE=oscomp BUS=mmio FEATURES=lwext4_rs
+	else
+		RUSTUP_TOOLCHAIN=nightly-2025-01-18 $(MAKE) oscomp_binary AX_TESTCASE=oscomp FEATURES=lwext4_rs
+	endif
+
 
 oscomp_test: defconfig
 	# Test for os competition online
