@@ -40,6 +40,23 @@ pub fn sys_getpid() -> LinuxResult<isize> {
 }
 
 #[apply(syscall_instrument)]
+pub fn sys_gettid() -> LinuxResult<isize> {
+    Ok(axtask::current().task_ext().proc_id as _)
+    // 待完善
+}
+
+#[apply(syscall_instrument)]
+pub fn sys_prlimit64(
+    _pid: i32,
+    _resource: i32,
+    _new_limit: UserConstPtr<usize>,
+    _old_limit: UserPtr<usize>,
+) -> LinuxResult<isize> {
+    warn!("sys_prlimit64: not implemented");
+    Ok(0)
+}
+
+#[apply(syscall_instrument)]
 pub fn sys_getppid() -> LinuxResult<isize> {
     Ok(axtask::current().task_ext().get_parent() as _)
 }
@@ -121,15 +138,12 @@ pub fn sys_clone(
 ) -> LinuxResult<isize> {
     let tls = arg3;
     let ctid = arg4;
-
+    let curr_task = current();    
     let stack = if user_stack == 0 {
         None
     } else {
         Some(user_stack)
     };
-
-    let curr_task = current();
-
     if let Ok(new_task_id) = curr_task
         .task_ext()
         .clone_task(flags, stack, ptid, tls, ctid)
