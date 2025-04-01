@@ -86,6 +86,7 @@ fn main() {
     println!("#### OS COMP TEST GROUP END basic-musl ####");
     println!("#### OS COMP TEST GROUP END basic-glibc ####");
 
+    println!("#### OS COMP TEST GROUP START libctest-glibc ####");
     println!("#### OS COMP TEST GROUP START libctest-musl ####");
     let testcases = option_env!("AX_MUSL_LIBCTEST_TESTCASES_LIST")
         .unwrap_or_else(|| "Please specify the testcases list by making user_apps")
@@ -102,5 +103,6 @@ fn main() {
         info!("User task {} exited with code: {:?}", testcase, exit_code);
     }
     println!("#### OS COMP TEST GROUP END libctest-musl ####");
+    println!("#### OS COMP TEST GROUP END libctest-glibc ####");
     
 }
