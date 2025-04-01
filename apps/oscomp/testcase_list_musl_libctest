@@ -25,6 +25,6 @@
 /musl/runtest.exe -w entry-static.exe string_strstr
 /musl/runtest.exe -w entry-static.exe strptime
 /musl/runtest.exe -w entry-static.exe strtol
+/musl/runtest.exe -w entry-static.exe udiv
 /musl/runtest.exe -w entry-static.exe time
 /musl/runtest.exe -w entry-static.exe tls_align
-/musl/runtest.exe -w entry-static.exe udiv
