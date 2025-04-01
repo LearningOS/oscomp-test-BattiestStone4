@@ -69,9 +69,7 @@ fn run_user_app(args: &[String], envs: &[String]) -> Option<i32> {
 fn main() {
     println!("#### OS COMP TEST GROUP START basic-glibc ####");
     println!("#### OS COMP TEST GROUP START basic-musl ####");
-    println!("#### OS COMP TEST GROUP START libctest-glibc ####");
-    println!("#### OS COMP TEST GROUP START libctest-musl ####");
-    let testcases = option_env!("AX_TESTCASES_LIST")
+    let testcases = option_env!("AX_MUSL_BASIC_TESTCASES_LIST")
         .unwrap_or_else(|| "Please specify the testcases list by making user_apps")
         .split(',')
         .filter(|&x| !x.is_empty());
@@ -87,6 +85,22 @@ fn main() {
     }
     println!("#### OS COMP TEST GROUP END basic-musl ####");
     println!("#### OS COMP TEST GROUP END basic-glibc ####");
+
+    println!("#### OS COMP TEST GROUP START libctest-musl ####");
+    let testcases = option_env!("AX_MUSL_LIBCTEST_TESTCASES_LIST")
+        .unwrap_or_else(|| "Please specify the testcases list by making user_apps")
+        .split(',')
+        .filter(|&x| !x.is_empty());
+
+    for testcase in testcases {
+        let args = testcase
+            .split_ascii_whitespace()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+
+        let exit_code = run_user_app(&args, &[]);
+        info!("User task {} exited with code: {:?}", testcase, exit_code);
+    }
     println!("#### OS COMP TEST GROUP END libctest-musl ####");
-    println!("#### OS COMP TEST GROUP END libctest-glibc ####");
+    
 }

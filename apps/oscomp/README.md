@@ -4,7 +4,7 @@ This directory contains testcases for the OSCOMP application.
 
 ## Testcases list
 
-The [testcase_list](./testcase_list) file contains the list of testcases that will be run after StarryOS is built. Every line in the file is the path to a testcase. An example of the file is shown below:
+The [testcase_list](testcase_list_musl_basic) file contains the list of testcases that will be run after StarryOS is built. Every line in the file is the path to a testcase. An example of the file is shown below:
 
 ```
 musl/basic/brk
