@@ -9,11 +9,15 @@ AX_GLIBC_BASIC_TESTCASES_LIST=$(shell cat ./apps/$(AX_TESTCASE)/testcase_list_gl
 AX_GLIBC_LIBCTEST_TESTCASES_LIST=$(shell cat ./apps/$(AX_TESTCASE)/testcase_list_glibc_libctest | tr '\n' ',')
 FEATURES ?= fp_simd
 
+export NO_AXSTD := y
+export AX_LIB := axfeat
+
 RUSTDOCFLAGS := -Z unstable-options --enable-index-page -D rustdoc::broken_intra_doc_links -D missing-docs
 EXTRA_CONFIG ?= $(PWD)/configs/$(ARCH).toml
 ifneq ($(filter $(MAKECMDGOALS),doc_check_missing),) # make doc_check_missing
     export RUSTDOCFLAGS
 else ifeq ($(filter $(MAKECMDGOALS),clean user_apps ax_root),) # Not make clean, user_apps, ax_root
+    export AX_TESTCASES_LIST
     export AX_MUSL_BASIC_TESTCASES_LIST
     export AX_MUSL_LIBCTEST_TESTCASES_LIST
     export AX_GLIBC_BASIC_TESTCASES_LIST
@@ -75,7 +79,7 @@ clean: ax_root
 	done
 	@cargo clean
 
-doc_check_missing:
-	@cargo doc --no-deps --all-features --workspace
+doc: defconfig
+	@AX_CONFIG_PATH=$(PWD)/.axconfig.toml cargo doc --no-deps --all-features --workspace
 
 .PHONY: all ax_root build run justrun debug disasm clean test_build

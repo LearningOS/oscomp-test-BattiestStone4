@@ -1,5 +1,5 @@
 /.vscode
-# /.arceos
+/.arceos
 /.cargo
 /.idea
 .DS_Store
@@ -10,5 +10,3 @@ apps/*/build/
 **/Cargo.lock
 !/vendor/**/Cargo.lock
 /.axconfig.*
-/.github/classroom
-/sdcard-*.img
