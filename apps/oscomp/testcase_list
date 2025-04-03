@@ -1,1 +1,1 @@
-/musl/busybox sh /musl/busybox_testcode.sh
+/musl/runtest.exe -w entry-static.exe fdopen

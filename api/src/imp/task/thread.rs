@@ -212,6 +212,6 @@ pub fn sys_execve(
 }
 
 pub fn sys_prlimit64() -> LinuxResult<isize> {
-    warn!("sys_prlimit64 not implemented");
+    warn!("prlimit64 not implemented");
     Ok(0)
 }

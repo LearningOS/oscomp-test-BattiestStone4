@@ -127,3 +127,4 @@
 /musl/runtest.exe -w entry-dynamic.exe search_insque
 /musl/runtest.exe -w entry-dynamic.exe search_lsearch
 /musl/runtest.exe -w entry-dynamic.exe search_tsearch
+/musl/runtest.exe -w entry-static.exe fdopen

@@ -63,6 +63,8 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
             tf.arg3().into(),
             tf.arg4() as _,
         ),
+        #[cfg(target_arch = "x86_64")]
+        Sysno::unlink => sys_unlink(tf.arg0().into()),
         Sysno::unlinkat => sys_unlinkat(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::uname => sys_uname(tf.arg0().into()),
         Sysno::fstat => sys_fstat(tf.arg0() as _, tf.arg1().into()),
@@ -117,6 +119,10 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
             tf.arg2().into(),
             tf.arg3() as _,
         ),
+        Sysno::rt_sigtimedwait => sys_rt_sigtimedwait(),
+        Sysno::prlimit64 => sys_prlimit64(),
+        Sysno::gettid => sys_getpid(), //temporary
+        Sysno::lseek => sys_lseek(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
         #[cfg(target_arch = "x86_64")]
         Sysno::fork => sys_clone(
             17,
@@ -125,9 +131,6 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
             0,
             0
         ),
-        Sysno::gettid => sys_getpid(),
-        Sysno::rt_sigtimedwait => sys_rt_sigtimedwait(),
-        Sysno::prlimit64 => sys_prlimit64(),
         _ => {
             warn!("Unimplemented syscall: {}", syscall_num);
             axtask::exit(LinuxError::ENOSYS as _)
