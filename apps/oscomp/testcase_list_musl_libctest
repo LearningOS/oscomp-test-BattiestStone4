@@ -171,3 +171,9 @@
 /musl/runtest.exe -w entry-dynamic.exe uselocale_0
 /musl/runtest.exe -w entry-dynamic.exe wcsncpy_read_overflow
 /musl/runtest.exe -w entry-dynamic.exe wcsstr_false_negative
+/musl/busybox echo "#### OS COMP TEST GROUP START busybox-musl ####"
+/musl/busybox echo "#### OS COMP TEST GROUP START busybox-glibc ####"
+/musl/busybox echo "#### independent command test"
+/musl/busybox echo testcase busybox echo "#### independent command test" success
+/musl/busybox echo "#### OS COMP TEST GROUP END busybox-glibc ####"
+/musl/busybox echo "#### OS COMP TEST GROUP END busybox-musl ####"
