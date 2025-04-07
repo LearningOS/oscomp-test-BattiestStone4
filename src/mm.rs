@@ -93,6 +93,7 @@ pub fn load_user_app(
             Ok(SegmentData::Undefined(data)) => data,
             _ => panic!("Invalid data in Interp Elf Program Header"),
         };
+
         let mut interp_path = axfs::api::canonicalize(
             CStr::from_bytes_with_nul(interp)
                 .map_err(|_| AxError::InvalidData)?
