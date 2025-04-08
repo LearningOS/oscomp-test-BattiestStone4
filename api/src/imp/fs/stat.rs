@@ -283,10 +283,7 @@ pub struct FsStat {
 }
 
 #[apply(syscall_instrument)]
-pub fn sys_statfs(
-    _path: UserConstPtr<c_char>,
-    fsstatbuf: UserPtr<FsStat>,
-) -> LinuxResult<isize> {
+pub fn sys_statfs(_path: UserConstPtr<c_char>, fsstatbuf: UserPtr<FsStat>) -> LinuxResult<isize> {
     let fsstatbuf = fsstatbuf.get()?;
     let fsstat = FsStat {
         f_type: 0,
