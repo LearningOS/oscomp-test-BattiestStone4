@@ -103,8 +103,6 @@ impl TaskExt {
             axconfig::plat::KERNEL_STACK_SIZE,
         );
 
-        #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
-        new_task.ctx_mut().set_tls(axhal::arch::read_thread_pointer().into());
         let current_task = current();
         let mut current_aspace = current_task.task_ext().aspace.lock();
         let mut new_aspace = current_aspace.clone_or_err()?;
@@ -112,6 +110,10 @@ impl TaskExt {
         new_task
             .ctx_mut()
             .set_page_table_root(new_aspace.page_table_root());
+        #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+        new_task
+            .ctx_mut()
+            .set_tls(axhal::arch::read_thread_pointer().into());
 
         let trap_frame = read_trapframe_from_kstack(current_task.get_kernel_stack_top().unwrap());
         let mut new_uctx = UspaceContext::from(&trap_frame);
@@ -124,6 +126,7 @@ impl TaskExt {
             let new_uctx_ip = new_uctx.ip();
             new_uctx.set_ip(new_uctx_ip + 4);
         }
+
         new_uctx.set_retval(0);
         let return_id: u64 = new_task.id().as_u64();
         let new_task_ext = TaskExt::new(

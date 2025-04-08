@@ -28,4 +28,3 @@ pub fn sys_rt_sigtimedwait() -> LinuxResult<isize> {
     warn!("sys_rt_sigtimedwait: not implemented");
     Ok(0)
 }
-

@@ -8,11 +8,12 @@ use starry_core::task::{time_stat_from_kernel_to_user, time_stat_from_user_to_ke
 use syscalls::Sysno;
 
 #[register_trap_handler(SYSCALL)]
-fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
+fn handle_syscall(tf: &mut TrapFrame, syscall_num: usize) -> isize {
     info!("Syscall {:?}", Sysno::from(syscall_num as u32));
     time_stat_from_user_to_kernel();
     let result: LinuxResult<isize> = match Sysno::from(syscall_num as u32) {
         Sysno::read => sys_read(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
+        Sysno::readv => sys_readv(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::write => sys_write(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::mmap => sys_mmap(
             tf.arg0().into(),
@@ -63,8 +64,6 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
             tf.arg3().into(),
             tf.arg4() as _,
         ),
-        #[cfg(target_arch = "x86_64")]
-        Sysno::unlink => sys_unlink(tf.arg0().into()),
         Sysno::unlinkat => sys_unlinkat(tf.arg0() as _, tf.arg1().into(), tf.arg2() as _),
         Sysno::uname => sys_uname(tf.arg0().into()),
         Sysno::fstat => sys_fstat(tf.arg0() as _, tf.arg1().into()),
@@ -97,6 +96,7 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
             tf.arg3() as _,
             tf.arg4().into(),
         ),
+        Sysno::statfs => sys_statfs(tf.arg0().into(), tf.arg1().into()),
         Sysno::munmap => sys_munmap(tf.arg0().into(), tf.arg1() as _),
         Sysno::mprotect => sys_mprotect(tf.arg0().into(), tf.arg1() as _, tf.arg2() as _),
         Sysno::times => sys_times(tf.arg0().into()),
@@ -120,17 +120,13 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
             tf.arg3() as _,
         ),
         Sysno::rt_sigtimedwait => sys_rt_sigtimedwait(),
+        #[cfg(target_arch = "x86_64")]
+        Sysno::fork => sys_fork(),
+        Sysno::gettid => sys_gettid(),
         Sysno::prlimit64 => sys_prlimit64(),
-        Sysno::gettid => sys_getpid(), //temporary
         Sysno::lseek => sys_lseek(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
         #[cfg(target_arch = "x86_64")]
-        Sysno::fork => sys_clone(
-            17,
-            0,
-            0,
-            0,
-            0
-        ),
+        Sysno::unlink => sys_unlink(tf.arg0().into()),
         _ => {
             warn!("Unimplemented syscall: {}", syscall_num);
             axtask::exit(LinuxError::ENOSYS as _)

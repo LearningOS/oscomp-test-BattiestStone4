@@ -298,6 +298,6 @@ pub fn sys_getcwd(buf: UserPtr<c_char>, size: usize) -> LinuxResult<isize> {
 }
 
 #[cfg(target_arch = "x86_64")]
-pub fn sys_unlink(filename:  UserConstPtr<c_char>) -> LinuxResult<isize> {
+pub fn sys_unlink(filename: UserConstPtr<c_char>) -> LinuxResult<isize> {
     sys_unlinkat(AT_FDCWD, filename, 0)
 }
