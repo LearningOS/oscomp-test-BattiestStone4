@@ -81,7 +81,14 @@ impl Socket {
     fn sendto(&self, buf: &[u8], addr: SocketAddr) -> LinuxResult<usize> {
         match self {
             // diff: must bind before sendto
-            Socket::Udp(udpsocket) => Ok(udpsocket.lock().send_to(buf, addr)?),
+            Socket::Udp(udpsocket) => {
+                let udpsocket = udpsocket.lock();
+                udpsocket.bind(SocketAddr::new(IpAddr::V4(Ipv4Addr::
+                    new(127, 0, 0, 1)), 0))
+                .map_err(|_| LinuxError::EISCONN)?;
+                udpsocket.send_to(buf, addr)
+                .map_err(|_| LinuxError::EISCONN)
+            }
             Socket::Tcp(_) => Err(LinuxError::EISCONN),
         }
     }
@@ -89,10 +96,7 @@ impl Socket {
     fn recvfrom(&self, buf: &mut [u8]) -> LinuxResult<(usize, Option<SocketAddr>)> {
         match self {
             // diff: must bind before recvfrom
-            Socket::Udp(udpsocket) => Ok(udpsocket
-                .lock()
-                .recv_from(buf)
-                .map(|res| (res.0, Some(res.1)))?),
+            Socket::Udp(udpsocket) => Ok(udpsocket.lock().recv_from(buf).map(|res| (res.0, Some(res.1)))?),
             Socket::Tcp(tcpsocket) => Ok(tcpsocket.lock().recv(buf).map(|res| (res, None))?),
         }
     }
@@ -125,6 +129,43 @@ impl Socket {
                 tcpsocket.peer_addr()?;
                 tcpsocket.shutdown()?;
                 Ok(())
+            }
+        }
+    }
+
+    fn setsockopt(&self, level: u8, optname: u8, optval: &[u8]) -> LinuxResult {
+        match self {
+            Socket::Udp(udpsocket) => {
+                let udpsocket = udpsocket.lock();
+                // [TODO] Implement setsockopt for UDP
+                match (level, optname) {
+                    (1, 20) => {
+                        if optval.len() != 4 {
+                            return Err(LinuxError::EINVAL);
+                        }
+                        let val = u32::from_ne_bytes([optval[0], optval[1], optval[2], optval[3]]);
+                        // udpsocket.set_broadcast(val != 0);
+                        Ok(())
+                    }
+                    _ => Err(LinuxError::ENOPROTOOPT),
+                }
+                
+            }
+
+            Socket::Tcp(tcpsocket) => {
+                let tcpsocket = tcpsocket.lock();
+                match (level, optname) {
+                    // TODO: Implement setsockopt for TCP
+                    (1, 20) => {
+                        if optval.len() != 4 {
+                            return Err(LinuxError::EINVAL);
+                        }
+                        let val = u32::from_ne_bytes([optval[0], optval[1], optval[2], optval[3]]);
+                        // tcpsocket.set_broadcast(val != 0);
+                        Ok(())
+                    }
+                    _ => Err(LinuxError::ENOPROTOOPT),
+                }
             }
         }
     }
@@ -226,17 +267,27 @@ fn from_sockaddr(
     Ok(res)
 }
 
+pub const SOCKET_TYPE_MASK: i32 = 0xFF;
+/// Set O_NONBLOCK flag on the open fd
+pub const SOCK_NONBLOCK: u32 = 0x800;
+/// Set FD_CLOEXEC flag on the new fd
+pub const SOCK_CLOEXEC: u32 = 0x80000;
+
 /// Create an socket for communication.
 ///
 /// Return the socket file descriptor.
 pub fn sys_socket(domain: c_int, socktype: c_int, protocol: c_int) -> c_int {
     debug!("sys_socket <= {} {} {}", domain, socktype, protocol);
-    let (domain, socktype, protocol) = (domain as u32, socktype as u32, protocol as u32);
+    let (domain, socktype, protocol) = (domain as u32, ((socktype & SOCKET_TYPE_MASK) as u32), protocol as u32);
     syscall_body!(sys_socket, {
         match (domain, socktype, protocol) {
             (ctypes::AF_INET, ctypes::SOCK_STREAM, ctypes::IPPROTO_TCP)
             | (ctypes::AF_INET, ctypes::SOCK_STREAM, 0) => {
-                Socket::Tcp(Mutex::new(TcpSocket::new())).add_to_fd_table()
+                let socket = Socket::Tcp(Mutex::new(TcpSocket::new()));
+                socket.set_nonblocking((socktype & SOCK_NONBLOCK) != 0);
+                // TODO: set close on exec
+                // socket.set_close_on_exec((socktype & SOCK_CLOEXEC) != 0);
+                socket.add_to_fd_table()
             }
             (ctypes::AF_INET, ctypes::SOCK_DGRAM, ctypes::IPPROTO_UDP)
             | (ctypes::AF_INET, ctypes::SOCK_DGRAM, 0) => {
@@ -576,6 +627,29 @@ pub unsafe fn sys_getpeername(
         unsafe {
             (*addr, *addrlen) = into_sockaddr(Socket::from_fd(sock_fd)?.peer_addr()?);
         }
+        Ok(0)
+    })
+}
+
+/// Set options on sockets
+pub fn sys_setsockopt(
+    sockfd: i32,
+    level: usize,
+    optname: usize,
+    optval: *const u8,
+    optlen: u32,
+) -> c_int {
+    debug!(
+        "sys_setsockopt <= {} {} {} {:#x} {}",
+        sockfd, level, optname, optval as usize, optlen
+    );
+    syscall_body!(sys_setsockopt, {
+        if optval.is_null() {
+            return Err(LinuxError::EFAULT);
+        }
+
+        let buf = unsafe { core::slice::from_raw_parts(optval, optlen as usize) };
+        Socket::from_fd(sockfd)?.setsockopt(level as u8, optname as u8, buf)?;
         Ok(0)
     })
 }
