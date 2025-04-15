@@ -9,8 +9,6 @@ use arceos_posix_api::{self as api,
 };
 use axerrno::LinuxResult;
 
-use crate::ptr::{PtrWrapper, UserConstPtr, UserPtr};
-
 pub fn sys_socket(domain: i32, socktype: i32, protocol: i32) -> LinuxResult<isize> {
     Ok(api::sys_socket(domain, socktype, protocol) as isize)
 }

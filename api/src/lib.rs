@@ -9,7 +9,6 @@ pub mod path;
 pub mod ptr;
 pub mod sockaddr;
 pub mod time;
-pub mod net;
 
 mod imp;
 pub use imp::*;
