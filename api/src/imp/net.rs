@@ -2,6 +2,7 @@ use alloc::{sync::Arc, vec, vec::Vec};
 use core::ffi::{CStr, c_char, c_int, c_void};
 use core::mem::size_of;
 use core::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
+use num_enum::TryFromPrimitive;
 
 use axerrno::{LinuxError, LinuxResult};
 use axio::PollState;
@@ -24,6 +25,16 @@ use super::ctypes::{
     IPPROTO_TCP,
     IPPROTO_UDP
 };
+
+#[derive(TryFromPrimitive, Debug)]
+#[repr(u8)]
+#[allow(non_camel_case_types)]
+pub enum SocketOptionLevel {
+    IP = 0,
+    Socket = 1,
+    Tcp = 6,
+    IPv6 = 41,
+}
 
 pub enum Socket {
     Udp(Mutex<UdpSocket>),
@@ -147,38 +158,33 @@ impl Socket {
     }
 
     fn setsockopt(&self, level: u8, optname: u8, optval: &[u8]) -> LinuxResult {
+        let Ok(level) = SocketOptionLevel::try_from(level) else {
+            error!("[setsockopt()] level {level} not supported");
+            unimplemented!();
+        };
         match self {
             Socket::Udp(udpsocket) => {
                 let udpsocket = udpsocket.lock();
-                // [TODO] Implement setsockopt for UDP
-                match (level, optname) {
-                    (1, 20) => {
-                        if optval.len() != 4 {
-                            return Err(LinuxError::EINVAL);
-                        }
-                        let val = u32::from_ne_bytes([optval[0], optval[1], optval[2], optval[3]]);
-                        // udpsocket.set_broadcast(val != 0);
+                // TODO: Implement setsockopt for UDP
+                match level {
+                    SocketOptionLevel::IP => {
+                        warn!("unimplemented setsockopt for UDP");
                         Ok(())
                     }
-                    _ => Err(LinuxError::ENOPROTOOPT),
+                    SocketOptionLevel::Socket => {
+                        warn!("unimplemented setsockopt for UDP");
+                        Ok(())
+                    }
+                    _ => {
+                        warn!("unimplemented setsockopt for UDP");
+                        Ok(())
+                    }
                 }
-                
             }
 
             Socket::Tcp(tcpsocket) => {
-                let tcpsocket = tcpsocket.lock();
-                match (level, optname) {
-                    // TODO: Implement setsockopt for TCP
-                    (1, 20) => {
-                        if optval.len() != 4 {
-                            return Err(LinuxError::EINVAL);
-                        }
-                        let val = u32::from_ne_bytes([optval[0], optval[1], optval[2], optval[3]]);
-                        // tcpsocket.set_broadcast(val != 0);
-                        Ok(())
-                    }
-                    _ => Err(LinuxError::ENOPROTOOPT),
-                }
+                warn!("unimplemented setsockopt for TCP");
+                Ok(())
             }
         }
     }
