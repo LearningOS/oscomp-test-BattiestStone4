@@ -56,7 +56,7 @@ pub use imp::io_mpx::{sys_epoll_create, sys_epoll_ctl, sys_epoll_wait};
 pub use imp::net::{
     sys_accept, sys_bind, sys_connect, sys_freeaddrinfo, sys_getaddrinfo, sys_getpeername,
     sys_getsockname, sys_listen, sys_recv, sys_recvfrom, sys_send, sys_sendto, sys_shutdown,
-    sys_socket, sys_setsockopt
+    sys_socket
 };
 #[cfg(feature = "pipe")]
 pub use imp::pipe::sys_pipe;

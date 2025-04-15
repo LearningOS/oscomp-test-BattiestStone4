@@ -14,7 +14,7 @@ use axio::SeekFrom;
 use bitflags::bitflags;
 use linux_raw_sys::general::{
     __kernel_mode_t, __kernel_off_t, AT_FDCWD, F_DUPFD, F_DUPFD_CLOEXEC, F_SETFL, O_APPEND,
-    O_CREAT, O_DIRECTORY, O_NONBLOCK, O_PATH, O_RDONLY, O_TRUNC, O_WRONLY,
+    O_CREAT, O_DIRECTORY, O_NONBLOCK, O_PATH, O_RDONLY, O_TRUNC, O_WRONLY, F_GETFD, F_GETFL, FD_CLOEXEC
 };
 
 use crate::ptr::UserConstPtr;
@@ -160,6 +160,15 @@ pub fn sys_fcntl(fd: c_int, cmd: c_int, arg: usize) -> LinuxResult<isize> {
             }
             get_file_like(fd)?.set_nonblocking(arg & (O_NONBLOCK as usize) > 0)?;
             Ok(0)
+        }
+        F_GETFD => {
+            warn!("unsupported fcntl parameters: F_GETFD, returning FD_CLOEXEC");
+            Ok(FD_CLOEXEC as _)
+        }
+        F_GETFL => {
+            warn!("unsupported fcntl parameters: F_GETFL, returning O_NONBLOCK");
+            Ok(O_NONBLOCK as _)
+
         }
         _ => {
             warn!("unsupported fcntl parameters: cmd: {}", cmd);
