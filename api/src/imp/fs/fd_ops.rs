@@ -218,7 +218,7 @@ pub fn sys_faccessat(
     _flags: u32,
 ) -> LinuxResult<isize> {
     // TODO: check flags
-
+    
     let modes = AccessModes::from_bits(mode).ok_or(LinuxError::EINVAL)?;
     let mut perms = VfsNodePerm::empty();
     if modes.contains(AccessModes::R_OK) {

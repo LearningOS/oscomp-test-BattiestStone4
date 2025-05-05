@@ -310,3 +310,8 @@ pub fn sys_getcwd(buf: UserPtr<u8>, size: usize) -> LinuxResult<isize> {
         Err(LinuxError::ERANGE)
     }
 }
+
+#[cfg(target_arch = "x86_64")]
+pub fn sys_mkdir(path: UserConstPtr<c_char>, mode: u32) -> LinuxResult<isize> {
+    sys_mkdirat(AT_FDCWD, path, mode)
+}

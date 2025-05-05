@@ -1,7 +1,7 @@
 use core::ffi::c_char;
 
 use axerrno::LinuxResult;
-use linux_raw_sys::system::new_utsname;
+use linux_raw_sys::{system::__IncompleteArrayField, system::{new_utsname, sysinfo}};
 
 use crate::ptr::UserPtr;
 
@@ -42,5 +42,27 @@ const UTSNAME: new_utsname = new_utsname {
 
 pub fn sys_uname(name: UserPtr<new_utsname>) -> LinuxResult<isize> {
     *name.get_as_mut()? = UTSNAME;
+    Ok(0)
+}
+
+const SYSINFO: sysinfo = sysinfo {
+    uptime: 0,
+    loads: [0, 0, 0],
+    totalram: 0,
+    freeram: 0,
+    sharedram: 0,
+    bufferram: 0,
+    totalswap: 0,
+    freeswap: 0,
+    procs: 0,
+    totalhigh: 0,
+    freehigh: 0,
+    mem_unit: 0,
+    pad: 0,
+    _f: __IncompleteArrayField::new(),
+};
+
+pub fn sys_sysinfo(info: UserPtr<sysinfo>) -> LinuxResult<isize> {
+    *info.get_as_mut()? = SYSINFO;
     Ok(0)
 }

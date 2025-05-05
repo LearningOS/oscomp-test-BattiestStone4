@@ -14,8 +14,7 @@ use crate::fd::{add_file_like, get_file_like, FileLike, Kstat};
 use super::ctypes::{
     size_t,
     aibuf,
-    stat,
-    AF_INET, AF_INET6,
+    AF_INET,
     in_addr, socklen_t, SOCK_DGRAM, SOCK_STREAM,
     sockaddr_in,
     sockaddr,
@@ -157,14 +156,14 @@ impl Socket {
         }
     }
 
-    fn setsockopt(&self, level: u8, optname: u8, optval: &[u8]) -> LinuxResult {
+    fn setsockopt(&self, level: u8, _optname: u8, _optval: &[u8]) -> LinuxResult {
         let Ok(level) = SocketOptionLevel::try_from(level) else {
             error!("[setsockopt()] level {level} not supported");
             unimplemented!();
         };
         match self {
             Socket::Udp(udpsocket) => {
-                let udpsocket = udpsocket.lock();
+                let _udpsocket = udpsocket.lock();
                 // TODO: Implement setsockopt for UDP
                 match level {
                     SocketOptionLevel::IP => {
@@ -182,7 +181,7 @@ impl Socket {
                 }
             }
 
-            Socket::Tcp(tcpsocket) => {
+            Socket::Tcp(_tcpsocket) => {
                 warn!("unimplemented setsockopt for TCP");
                 Ok(())
             }
@@ -201,7 +200,7 @@ impl FileLike for Socket {
 
     fn stat(&self) -> LinuxResult<Kstat> {
         // TODO: implement socket stat
-        let mode = 0o140000 | 0o777u32; // S_IFSOCK | rwxrwxrwx
+        let _mode = 0o140000 | 0o777u32; // S_IFSOCK | rwxrwxrwx
         Ok(Kstat::default())
     }
 
@@ -306,7 +305,7 @@ pub fn sys_socket(domain: c_int, socktype: c_int, protocol: c_int) -> LinuxResul
         (AF_INET, SOCK_STREAM, IPPROTO_TCP)
         | (AF_INET, SOCK_STREAM, 0) => {
             let socket = Socket::Tcp(Mutex::new(TcpSocket::new()));
-            socket.set_nonblocking((socktype & SOCK_NONBLOCK) != 0);
+            let _ = socket.set_nonblocking((socktype & SOCK_NONBLOCK) != 0);
             // TODO: set close on exec
             // socket.set_close_on_exec((socktype & SOCK_CLOEXEC) != 0);
             socket.add_to_fd_table()
