@@ -130,6 +130,12 @@ pub fn sys_statx(
         "sys_statx <= dirfd: {}, path: {:?}, flags: {}",
         dirfd, path, flags
     );
+    let path = if path.unwrap().starts_with("/bin/") {
+        Some("/musl/busybox")
+    } else {
+        path
+    };
+
 
     *statxbuf.get_as_mut()? = if path.is_none_or(|s| s.is_empty()) {
         if (flags & AT_EMPTY_PATH) == 0 {
