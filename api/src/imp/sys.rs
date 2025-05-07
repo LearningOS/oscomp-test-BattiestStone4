@@ -1,7 +1,10 @@
 use core::ffi::c_char;
 
 use axerrno::LinuxResult;
-use linux_raw_sys::{system::__IncompleteArrayField, system::{new_utsname, sysinfo}};
+use linux_raw_sys::{
+    system::__IncompleteArrayField,
+    system::{new_utsname, sysinfo},
+};
 
 use crate::ptr::UserPtr;
 

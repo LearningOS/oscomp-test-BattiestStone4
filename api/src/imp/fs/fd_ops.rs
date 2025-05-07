@@ -1,10 +1,11 @@
 use core::{
-    ffi::{c_char, c_int},
+    ffi::{c_char, c_int, c_uint},
     panic,
 };
 
-use crate::fd::{
-    Directory, FD_TABLE, File, FileLike, add_file_like, close_file_like, get_file_like,
+use crate::{
+    fd::{Directory, FD_TABLE, File, FileLike, add_file_like, close_file_like, get_file_like},
+    path::handle_file_path,
 };
 use alloc::{borrow::ToOwned, string::String};
 use axerrno::{AxError, LinuxError, LinuxResult};
@@ -12,9 +13,12 @@ use axfs::{CURRENT_DIR_PATH, fops::OpenOptions};
 use axfs_vfs::VfsNodePerm;
 use axio::SeekFrom;
 use bitflags::bitflags;
-use linux_raw_sys::general::{
-    __kernel_mode_t, __kernel_off_t, AT_FDCWD, F_DUPFD, F_DUPFD_CLOEXEC, F_SETFL, O_APPEND,
-    O_CREAT, O_DIRECTORY, O_NONBLOCK, O_PATH, O_RDONLY, O_TRUNC, O_WRONLY, F_GETFD, F_GETFL, FD_CLOEXEC
+use linux_raw_sys::{
+    general::{
+        __kernel_mode_t, __kernel_off_t, AT_FDCWD, F_DUPFD, F_DUPFD_CLOEXEC, F_GETFD, F_GETFL,
+        F_SETFL, FD_CLOEXEC, O_APPEND, O_CREAT, O_DIRECTORY, O_NONBLOCK, O_PATH, O_RDONLY, O_TRUNC,
+        O_WRONLY,
+    },
 };
 
 use crate::ptr::UserConstPtr;
@@ -168,7 +172,6 @@ pub fn sys_fcntl(fd: c_int, cmd: c_int, arg: usize) -> LinuxResult<isize> {
         F_GETFL => {
             warn!("unsupported fcntl parameters: F_GETFL, returning O_NONBLOCK");
             Ok(O_NONBLOCK as _)
-
         }
         _ => {
             warn!("unsupported fcntl parameters: cmd: {}", cmd);
@@ -218,7 +221,12 @@ pub fn sys_faccessat(
     _flags: u32,
 ) -> LinuxResult<isize> {
     // TODO: check flags
-    
+    info!(
+        "sys_faccessat: dirfd: {}, path: {}, mode:{}",
+        dirfd,
+        path.get_as_str()?,
+        mode
+    );
     let modes = AccessModes::from_bits(mode).ok_or(LinuxError::EINVAL)?;
     let mut perms = VfsNodePerm::empty();
     if modes.contains(AccessModes::R_OK) {
@@ -232,6 +240,11 @@ pub fn sys_faccessat(
     }
 
     let path = path.get_as_str()?;
+    let path = if path.starts_with("/bin/") {
+        "/musl/busybox"
+    } else {
+        path
+    };
     let path = resolve_path(dirfd, path)?;
     let metadata = axfs::api::metadata(&path)?;
     if !metadata.permissions().contains(perms) {
@@ -239,4 +252,33 @@ pub fn sys_faccessat(
     }
 
     Ok(0)
+}
+
+pub fn sys_renameat2(
+    old_dirfd: c_int,
+    old: UserConstPtr<c_char>,
+    new_dirfd: c_int,
+    new: UserConstPtr<c_char>,
+    _flags: c_uint,
+) -> LinuxResult<isize> {
+    //TODO: handle with flags
+    sys_renameat(old_dirfd, old, new_dirfd, new)
+}
+
+pub fn sys_renameat(
+    old_dirfd: c_int,
+    old: UserConstPtr<c_char>,
+    new_dirfd: c_int,
+    new: UserConstPtr<c_char>,
+) -> LinuxResult<isize> {
+    let old_path = handle_file_path(old_dirfd, old.get_as_str()?)?;
+    let new_path = handle_file_path(new_dirfd, new.get_as_str()?)?;
+    info!("sys_rename <= old: {:?}, new: {:?}", old_path, new_path);
+    axfs::api::rename(&old_path, &new_path)?;
+    Ok(0)
+}
+
+#[cfg(target_arch = "x86_64")]
+pub fn sys_rename(old: UserConstPtr<c_char>, new: UserConstPtr<c_char>) -> LinuxResult<isize> {
+    sys_renameat(AT_FDCWD, old, AT_FDCWD, new)
 }

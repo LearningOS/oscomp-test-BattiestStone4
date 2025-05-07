@@ -28,7 +28,11 @@ fn stat_at_path(path: &str) -> LinuxResult<Kstat> {
 pub fn sys_stat(path: UserConstPtr<c_char>, statbuf: UserPtr<stat>) -> LinuxResult<isize> {
     let path = path.get_as_str()?;
     debug!("sys_stat <= path: {}", path);
-
+    let path = if path.starts_with("/bin/") {
+        "/musl/busybox"
+    } else {
+        path
+    };
     *statbuf.get_as_mut()? = stat_at_path(path)?.into();
 
     Ok(0)
@@ -63,6 +67,11 @@ pub fn sys_fstatat(
     flags: u32,
 ) -> LinuxResult<isize> {
     let path = nullable!(path.get_as_str())?;
+    let path = if path.unwrap().starts_with("/bin/") {
+        Some("/musl/busybox")
+    } else {
+        path
+    };
     debug!(
         "sys_fstatat <= dirfd: {}, path: {:?}, flags: {}",
         dirfd, path, flags

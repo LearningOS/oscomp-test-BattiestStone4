@@ -9,20 +9,11 @@ use axio::PollState;
 use axnet::{TcpSocket, UdpSocket};
 use axsync::Mutex;
 
-use crate::fd::{add_file_like, get_file_like, FileLike, Kstat};
+use crate::fd::{FileLike, Kstat, add_file_like, get_file_like};
 
 use super::ctypes::{
-    size_t,
-    aibuf,
-    AF_INET,
-    in_addr, socklen_t, SOCK_DGRAM, SOCK_STREAM,
-    sockaddr_in,
-    sockaddr,
-    addrinfo,
-    aibuf_sa,
-    MAXADDRS,
-    IPPROTO_TCP,
-    IPPROTO_UDP
+    AF_INET, IPPROTO_TCP, IPPROTO_UDP, MAXADDRS, SOCK_DGRAM, SOCK_STREAM, addrinfo, aibuf,
+    aibuf_sa, in_addr, size_t, sockaddr, sockaddr_in, socklen_t,
 };
 
 #[derive(TryFromPrimitive, Debug)]
@@ -106,11 +97,12 @@ impl Socket {
             // diff: must bind before sendto
             Socket::Udp(udpsocket) => {
                 let udpsocket = udpsocket.lock();
-                udpsocket.bind(SocketAddr::new(IpAddr::V4(Ipv4Addr::
-                    new(127, 0, 0, 1)), 0))
-                .map_err(|_| LinuxError::EISCONN)?;
-                udpsocket.send_to(buf, addr)
-                .map_err(|_| LinuxError::EISCONN)
+                udpsocket
+                    .bind(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 0))
+                    .map_err(|_| LinuxError::EISCONN)?;
+                udpsocket
+                    .send_to(buf, addr)
+                    .map_err(|_| LinuxError::EISCONN)
             }
             Socket::Tcp(_) => Err(LinuxError::EISCONN),
         }
@@ -119,7 +111,10 @@ impl Socket {
     fn recvfrom(&self, buf: &mut [u8]) -> LinuxResult<(usize, Option<SocketAddr>)> {
         match self {
             // diff: must bind before recvfrom
-            Socket::Udp(udpsocket) => Ok(udpsocket.lock().recv_from(buf).map(|res| (res.0, Some(res.1)))?),
+            Socket::Udp(udpsocket) => Ok(udpsocket
+                .lock()
+                .recv_from(buf)
+                .map(|res| (res.0, Some(res.1)))?),
             Socket::Tcp(tcpsocket) => Ok(tcpsocket.lock().recv(buf).map(|res| (res, None))?),
         }
     }
@@ -256,10 +251,7 @@ fn into_sockaddr(addr: SocketAddr) -> (sockaddr, socklen_t) {
     }
 }
 
-fn from_sockaddr(
-    addr: *const sockaddr,
-    addrlen: socklen_t,
-) -> LinuxResult<SocketAddr> {
+fn from_sockaddr(addr: *const sockaddr, addrlen: socklen_t) -> LinuxResult<SocketAddr> {
     if addr.is_null() {
         return Err(LinuxError::EFAULT);
     }
@@ -300,21 +292,25 @@ pub const SOCK_CLOEXEC: u32 = 0x80000;
 /// Return the socket file descriptor.
 pub fn sys_socket(domain: c_int, socktype: c_int, protocol: c_int) -> LinuxResult<isize> {
     debug!("sys_socket <= {} {} {}", domain, socktype, protocol);
-    let (domain, socktype, protocol) = (domain as u32, ((socktype & SOCKET_TYPE_MASK) as u32), protocol as u32);
+    let (domain, socktype, protocol) = (
+        domain as u32,
+        ((socktype & SOCKET_TYPE_MASK) as u32),
+        protocol as u32,
+    );
     match (domain, socktype, protocol) {
-        (AF_INET, SOCK_STREAM, IPPROTO_TCP)
-        | (AF_INET, SOCK_STREAM, 0) => {
+        (AF_INET, SOCK_STREAM, IPPROTO_TCP) | (AF_INET, SOCK_STREAM, 0) => {
             let socket = Socket::Tcp(Mutex::new(TcpSocket::new()));
             let _ = socket.set_nonblocking((socktype & SOCK_NONBLOCK) != 0);
             // TODO: set close on exec
             // socket.set_close_on_exec((socktype & SOCK_CLOEXEC) != 0);
-            socket.add_to_fd_table()
+            socket
+                .add_to_fd_table()
                 .map(|fd| fd as isize)
                 .map_err(|_| LinuxError::EMFILE)
         }
-        (AF_INET, SOCK_DGRAM, IPPROTO_UDP)
-        | (AF_INET, SOCK_DGRAM, 0) => {
-            Socket::Udp(Mutex::new(UdpSocket::new())).add_to_fd_table()
+        (AF_INET, SOCK_DGRAM, IPPROTO_UDP) | (AF_INET, SOCK_DGRAM, 0) => {
+            Socket::Udp(Mutex::new(UdpSocket::new()))
+                .add_to_fd_table()
                 .map(|fd| fd as isize)
                 .map_err(|_| LinuxError::EMFILE)
         }
@@ -376,7 +372,8 @@ pub fn sys_sendto(
     }
     let addr = from_sockaddr(socket_addr, addrlen)?;
     let buf = unsafe { core::slice::from_raw_parts(buf_ptr as *const u8, len) };
-    Socket::from_fd(socket_fd)?.sendto(buf, addr)
+    Socket::from_fd(socket_fd)?
+        .sendto(buf, addr)
         .map(|res| res as isize)
         .map_err(|_| LinuxError::EISCONN)
 }
@@ -398,7 +395,8 @@ pub fn sys_send(
         return Err(LinuxError::EFAULT);
     }
     let buf = unsafe { core::slice::from_raw_parts(buf_ptr as *const u8, len) };
-    Socket::from_fd(socket_fd)?.send(buf)
+    Socket::from_fd(socket_fd)?
+        .send(buf)
         .map(|res| res as isize)
         .map_err(|_| LinuxError::EISCONN)
 }
@@ -450,7 +448,8 @@ pub fn sys_recv(
         return Err(LinuxError::EFAULT);
     }
     let buf = unsafe { core::slice::from_raw_parts_mut(buf_ptr as *mut u8, len) };
-    Socket::from_fd(socket_fd)?.recv(buf)
+    Socket::from_fd(socket_fd)?
+        .recv(buf)
         .map(|res| res as isize)
         .map_err(|_| LinuxError::EISCONN)
 }
@@ -567,8 +566,7 @@ pub unsafe fn sys_getaddrinfo(
             _ => panic!("IPv6 is not supported"),
         };
         out.push(buf);
-        out[i].ai.ai_addr =
-            unsafe { core::ptr::addr_of_mut!(out[i].sa.sin) as *mut sockaddr };
+        out[i].ai.ai_addr = unsafe { core::ptr::addr_of_mut!(out[i].sa.sin) as *mut sockaddr };
         if i > 0 {
             out[i - 1].ai.ai_next = core::ptr::addr_of_mut!(out[i].ai);
         }

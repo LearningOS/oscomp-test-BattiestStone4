@@ -1,4 +1,4 @@
-use crate::alloc::string::String;
+use crate::alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use axerrno::AxError;
 use axfs_vfs::{VfsDirEntry, VfsError, VfsNodePerm, VfsResult};
@@ -315,8 +315,12 @@ impl VfsNodeOps for FileWrapper {
     }
 
     fn rename(&self, src_path: &str, dst_path: &str) -> VfsResult {
+        //I don't know why src_path will lose its first '/'
+        //so just add it back.
+        let mut fixed_src_path = src_path.to_string();
+        fixed_src_path = "/".to_string() + &fixed_src_path; 
         let mut file = self.0.lock();
-        file.file_rename(src_path, dst_path)
+        file.file_rename(&fixed_src_path, dst_path)
             .map(|_v| ())
             .map_err(|e| e.try_into().unwrap())
     }
